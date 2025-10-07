@@ -278,8 +278,8 @@ La matriz de Proyección define las propiedades del "lente" de la cámara virtua
 Aquí es donde la **matriz intrínseca (`mtx`)** vuelve a ser protagonista. La función `set_projection_from_camera` realiza esta tarea:
 
 1.  **Extraer Parámetros:** La función toma la matriz `mtx` y extrae los valores de distancia focal (`fx`, `fy`) y el punto principal (`cx`, `cy`).
-$$ mtx =
-\begin{pmatrix}
+$$ mtx = $$
+$$\begin{pmatrix}
 f_x & 0 & c_x \\
 0 & f_y & c_y \\
 0 & 0 & 1
