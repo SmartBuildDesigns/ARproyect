@@ -173,3 +173,81 @@ El flujo de trabajo es el siguiente:
 5.  Finalmente, carga la imagen `Lucario_Textura.png` y la prepara para que OpenGL la "pinte" sobre la geometría del `.obj` cuando se renderice.
 
 Comprender esta separación entre **forma (`.obj`)**, **superficie (`.mtl`)** e **imagen (`.png`)** es clave para trabajar con cualquier tipo de gráficos 3D.
+
+## De la Cámara a OpenGL: La Transformación Mágica
+
+Una vez que tenemos los parámetros de calibración (`mtx`, `dist`) y la pose del marcador en el mundo real (`rvec`, `tvec` de `solvePnP`), nos enfrentamos al último gran desafío: **traducir esta información al lenguaje de OpenGL**.
+
+Esto no es directo, ya que OpenCV y OpenGL "ven" el mundo de maneras diferentes; usan **sistemas de coordenadas distintos**.
+
+* **OpenCV (Cámara):** Considera que **+Y** es hacia **abajo** y **+Z** es hacia **adelante** (saliendo de la pantalla hacia el espectador).
+* **OpenGL (Cámara):** Considera que **+Y** es hacia **arriba** y **-Z** es hacia **adelante**.
+
+
+*Comparación de los sistemas de coordenadas. Es necesario un ajuste para que ambos "mundos" coincidan.*
+
+Para alinear el objeto 3D virtual con el mundo real, debemos configurar dos matrices principales en OpenGL: la matriz de **Vista (Model-View)** y la de **Proyección**.
+
+---
+
+### 1. La Matriz de Vista (Model-View): Posicionando el Mundo
+
+La matriz de Vista le dice a OpenGL desde dónde y con qué orientación se está mirando la escena. En nuestro caso, esta matriz debe replicar la pose exacta de nuestra cámara web real.
+
+El proceso en el código es el siguiente:
+
+1.  **Obtener Pose:** `cv2.solvePnP` nos da un vector de rotación (`rvec`) y uno de traslación (`tvec`) que describen la pose del marcador en el sistema de coordenadas de OpenCV.
+
+2.  **Convertir a Matriz:** La rotación `rvec` se convierte en una matriz de rotación de 3x3, `R`, usando `cv2.Rodrigues(rvec)`.
+
+3.  **Crear Matriz de Pose:** Se combina la matriz de rotación `R` y el vector de traslación `tvec` en una sola matriz de transformación de 4x4 (`pose_matrix`).
+
+4.  **Corregir Coordenadas:** Aquí está el paso crucial. Antes de pasarle la `pose_matrix` a OpenGL, la multiplicamos por una matriz de conversión que invierte los ejes Y y Z para adaptarlos al sistema de OpenGL.
+    ```python
+    # Esta matriz voltea el signo de los ejes Y y Z
+    gl_convert = np.array([[1, 0, 0, 0],
+                           [0,-1, 0, 0],
+                           [0, 0,-1, 0],
+                           [0, 0, 0, 1]])
+    
+    # Se establece el modo de matriz y se carga la conversión
+    glMatrixMode(GL_MODELVIEW)
+    glLoadIdentity()
+    glMultMatrixf(gl_convert.T) # .T es para transponer la matriz
+    
+    # Ahora se multiplica por la pose del marcador
+    glMultMatrixf(pose_matrix.T)
+    ```
+Al hacer esto, hemos movido y rotado toda la escena de OpenGL para que la cámara virtual quede perfectamente alineada con la cámara real respecto al marcador.
+
+---
+
+### 2. La Matriz de Proyección: Imitando el Lente de la Cámara
+
+La matriz de Proyección define las propiedades del "lente" de la cámara virtual: su campo de visión, su relación de aspecto y cómo se representa la perspectiva. Para que la ilusión sea perfecta, este lente virtual debe ser un clon del lente de nuestra cámara web.
+
+Aquí es donde la **matriz intrínseca (`mtx`)** vuelve a ser protagonista. La función `set_projection_from_camera` realiza esta tarea:
+
+1.  **Extraer Parámetros:** La función toma la matriz `mtx` y extrae los valores de distancia focal (`fx`, `fy`) y el punto principal (`cx`, `cy`).
+    $$
+    mtx = \begin{pmatrix} f_x & 0 & c_x \\ 0 & f_y & c_y \\ 0 & 0 & 1 \end{pmatrix}
+    $$
+
+2.  **Construir un Frustum:** OpenGL no usa directamente estos valores, pero sí una función llamada `glFrustum`. Esta función define la pirámide de visión de la cámara. El código utiliza fórmulas matemáticas para convertir `fx, fy, cx, cy` en los parámetros (`left`, `right`, `bottom`, `top`) que `glFrustum` necesita.
+    ```python
+    def set_projection_from_camera(mtx):
+        glMatrixMode(GL_PROJECTION)
+        glLoadIdentity()
+        fx, fy = mtx[0, 0], mtx[1, 1]
+        cx, cy = mtx[0, 2], mtx[1, 2]
+        
+        # Calcular los bordes de la pirámide de visión
+        left   = -cx * z_near / fx
+        right  = (width - cx) * z_near / fx
+        bottom = -(height - cy) * z_near / fy
+        top    = cy * z_near / fy
+        
+        # Establecer la proyección de OpenGL para que coincida con la cámara
+        glFrustum(left, right, bottom, top, z_near, z_far)
+    ```
+Este paso garantiza que los objetos 3D se rendericen con la misma distorsión de perspectiva que captura la cámara real, completando así la integración entre el mundo real y el virtual.
