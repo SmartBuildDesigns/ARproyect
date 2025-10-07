@@ -1,0 +1,22 @@
+#
+## Alias OBJ Material File
+# Exported from SketchUp, (c) 2000-2012 Trimble Navigation Limited
+
+newmtl Material__178
+Ka 0.000000 0.000000 0.000000
+Kd 0.423529 0.486275 0.494118
+Ks 0.330000 0.330000 0.330000
+map_Kd Lucario/Material__178.png
+
+newmtl Material__179
+Ka 0.000000 0.000000 0.000000
+Kd 0.407843 0.458824 0.486275
+Ks 0.330000 0.330000 0.330000
+map_Kd Lucario/Material__179.png
+
+newmtl Material__180
+Ka 0.000000 0.000000 0.000000
+Kd 0.435294 0.360784 0.388235
+Ks 0.330000 0.330000 0.330000
+map_Kd Lucario/Material__180.png
+
