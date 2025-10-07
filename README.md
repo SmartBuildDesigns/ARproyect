@@ -278,9 +278,9 @@ La matriz de Proyección define las propiedades del "lente" de la cámara virtua
 Aquí es donde la **matriz intrínseca (`mtx`)** vuelve a ser protagonista. La función `set_projection_from_camera` realiza esta tarea:
 
 1.  **Extraer Parámetros:** La función toma la matriz `mtx` y extrae los valores de distancia focal (`fx`, `fy`) y el punto principal (`cx`, `cy`).
-    $$mtx = \begin{pmatrix} f_x & 0 & c_x \\
-   0 & f_y & c_y \\
-   0 & 0 & 1 \end{pmatrix}$$
+$$
+mtx = \begin{pmatrix} f_x & 0 & c_x \\ 0 & f_y & c_y \\ 0 & 0 & 1 \end{pmatrix}
+$$
 
 3.  **Construir un Frustum:** OpenGL no usa directamente estos valores, pero sí una función llamada `glFrustum`. Esta función define la pirámide de visión de la cámara. El código utiliza fórmulas matemáticas para convertir `fx, fy, cx, cy` en los parámetros (`left`, `right`, `bottom`, `top`) que `glFrustum` necesita.
     ```python
