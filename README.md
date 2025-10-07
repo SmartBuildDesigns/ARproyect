@@ -2,7 +2,7 @@
 
 Este proyecto es una aplicación de Realidad Aumentada (RA) basada en marcadores, desarrollada completamente en Python. Utiliza un tablero de ajedrez como marcador físico para detectar una superficie y superponer un modelo 3D en tiempo real sobre la transmisión de video de una cámara web.
 
-![Ejemplo de la App en funcionamiento](https://i.imgur.com/AR-demo.gif) ---
+![Ejemplo de la App en funcionamiento](licensed-image.jpeg) ---
 
 ## 🛠️ Tecnologías Utilizadas
 * **OpenCV:** Para la captura de video, corrección de imagen, detección del marcador (tablero de ajedrez) y el cálculo de la pose de la cámara.
