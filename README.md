@@ -200,6 +200,55 @@ El proceso en el código es el siguiente:
 
 2.  **Convertir a Matriz:** La rotación `rvec` se convierte en una matriz de rotación de 3x3, `R`, usando `cv2.Rodrigues(rvec)`.
 
+## El Traductor de Rotaciones: `cv2.Rodrigues()`
+
+Dentro del proceso de transformación, hay una función pequeña pero absolutamente vital: `cv2.Rodrigues()`. Su único propósito es actuar como un **traductor universal** entre dos formas diferentes de representar una rotación 3D: el **vector de rotación** y la **matriz de rotación**.
+
+### ¿Qué es un Vector de Rotación? (`rvec`) 🌪️
+
+Un **vector de rotación** es la forma compacta y eficiente que OpenCV usa para describir una rotación con solo **tres números**. Es lo que la función `cv2.solvePnP` nos devuelve.
+
+Este vector combina dos conceptos:
+1.  **La dirección** del vector define el **eje de rotación**.
+2.  **La magnitud** (longitud) del vector define el **ángulo de rotación** en radianes.
+
+
+*El vector `rvec` define el eje sobre el cual rota un objeto y su longitud define cuánto rota.*
+
+### ¿Qué es una Matriz de Rotación? (`R`)
+
+Una **matriz de rotación** es la representación matemática explícita de una rotación en una matriz de 3x3. Es el formato estándar que se utiliza en gráficos por computadora y álgebra lineal para aplicar transformaciones a los puntos de un objeto. Es la forma que necesitamos para construir la matriz de pose final que OpenGL entiende.
+
+### La Función `cv2.Rodrigues()`: El Puente entre Mundos
+
+Esta función traduce entre las dos representaciones en ambas direcciones:
+
+#### 1. De Vector a Matriz (Nuestro caso de uso)
+Cuando le pasamos el `rvec` de 3 elementos, nos devuelve la matriz `R` de 3x3.
+
+```python
+# rvec es el vector de rotación de solvePnP
+R, _ = cv2.Rodrigues(rvec) 
+# Ahora R es una matriz de 3x3 lista para usarse
+```
+
+#### 2. De Matriz a Vector (La operación inversa)
+Si tuviéramos la matriz `R`, podríamos obtener el `rvec` original.
+
+```python
+# R es una matriz de rotación de 3x3
+rvec_calculado, _ = cv2.Rodrigues(R)
+```
+
+### ¿Por Qué es Indispensable en Este Proyecto?
+
+`cv2.Rodrigues()` es la pieza de conexión fundamental que permite que la información fluya desde el módulo de visión por computadora al de gráficos por computadora:
+
+- **`cv2.solvePnP`** nos da la rotación en el formato eficiente de **vector (`rvec`)**.
+- **OpenGL** necesita la rotación en el formato explícito de **matriz (`R`)** para poder construir la matriz de pose y transformar la escena.
+
+Sin este "traductor", no podríamos usar el resultado del análisis de imagen de OpenCV para controlar la cámara virtual de OpenGL.
+
 3.  **Crear Matriz de Pose:** Se combina la matriz de rotación `R` y el vector de traslación `tvec` en una sola matriz de transformación de 4x4 (`pose_matrix`).
 
 4.  **Corregir Coordenadas:** Aquí está el paso crucial. Antes de pasarle la `pose_matrix` a OpenGL, la multiplicamos por una matriz de conversión que invierte los ejes Y y Z para adaptarlos al sistema de OpenGL.
@@ -229,13 +278,9 @@ La matriz de Proyección define las propiedades del "lente" de la cámara virtua
 Aquí es donde la **matriz intrínseca (`mtx`)** vuelve a ser protagonista. La función `set_projection_from_camera` realiza esta tarea:
 
 1.  **Extraer Parámetros:** La función toma la matriz `mtx` y extrae los valores de distancia focal (`fx`, `fy`) y el punto principal (`cx`, `cy`).
-    $$
-    mtx =
-   \begin{pmatrix} f_x & 0 & c_x \\
+    $$mtx = \begin{pmatrix} f_x & 0 & c_x \\
    0 & f_y & c_y \\
-   0 & 0 & 1
-   \end{pmatrix}
-    $$
+   0 & 0 & 1 \end{pmatrix}$$
 
 3.  **Construir un Frustum:** OpenGL no usa directamente estos valores, pero sí una función llamada `glFrustum`. Esta función define la pirámide de visión de la cámara. El código utiliza fórmulas matemáticas para convertir `fx, fy, cx, cy` en los parámetros (`left`, `right`, `bottom`, `top`) que `glFrustum` necesita.
     ```python
